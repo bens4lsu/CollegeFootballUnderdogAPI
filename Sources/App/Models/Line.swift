@@ -9,13 +9,14 @@ import Foundation
 import Vapor
 
 final class Line: Content {
-    var id: Int
+
     var homeTeam: Team
     var awayTeam: Team
     var kickoff: Date
     var spread: Spread
+    var gameId: Int?
     
-    init(id: Int, homeTeam: Team, awayTeam: Team, kickoff: Date, spread: Spread) {
+    init(homeTeam: Team, awayTeam: Team, kickoff: Date, spread: Spread) {
         self.id = id
         self.homeTeam = homeTeam
         self.awayTeam = awayTeam

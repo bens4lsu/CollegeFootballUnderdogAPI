@@ -9,14 +9,11 @@ import Foundation
 import Vapor
 
 class EspnLines {
-    var appConfig: AppConfig
     var lines: [Line]
 
-    init(_ req: Request, _ appConfig: AppConfig) async throws {
-        self.appConfig = appConfig
-        
-        let espnURL = URI(path: appConfig.espnLinesUrl)
-        let espnResponse = try await req.client.get(espnURL)
+    init(_ req: Request, _ appConfig: AppConfig) async throws {        
+        let espnURL = URI(stringLiteral: appConfig.espnLinesUrl)
+        let espnResponse = try await req.client.get(espnURL).get()
         
         self.lines = []
     }

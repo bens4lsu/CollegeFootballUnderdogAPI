@@ -20,5 +20,5 @@ public func configure(_ app: Application) throws {
     let appConfig = AppConfig()
 
     // register routes
-    try routes(app)
+    try routes(app, appConfig)
 }
