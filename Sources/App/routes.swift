@@ -6,9 +6,10 @@ func routes(_ app: Application) throws {
         return "It works!"
     }
 
-    app.get("hello") { req -> String in
-        return "Hello, world!"
+    app.get("getLines") { req async throws -> Response in
+        let lines = try await EspnLines(req, AppConfig())
+        return try await lines.value(req)
     }
 
-    try app.register(collection: TodoController())
+    //try app.register(collection: TodoController())
 }
