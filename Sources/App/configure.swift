@@ -7,17 +7,23 @@ public func configure(_ app: Application) throws {
     // uncomment to serve files from /Public folder
     // app.middleware.use(FileMiddleware(publicDirectory: app.directory.publicDirectory))
 
-//    app.databases.use(.mysql(
-//        hostname: Environment.get("DATABASE_HOST") ?? "localhost",
-//        port: Environment.get("DATABASE_PORT").flatMap(Int.init(_:)) ?? MySQLConfiguration.ianaPortNumber,
-//        username: Environment.get("DATABASE_USERNAME") ?? "vapor_username",
-//        password: Environment.get("DATABASE_PASSWORD") ?? "vapor_password",
-//        database: Environment.get("DATABASE_NAME") ?? "vapor_database"
-//    ), as: .mysql)
-//
-//    app.migrations.add(CreateTodo())
+    
     
     let appConfig = AppConfig()
+    app.http.server.configuration.port = appConfig.listenOnPort
+    
+    var tls = TLSConfiguration.makeClientConfiguration()
+    tls.certificateVerification = appConfig.certificateVerification
+    
+    app.databases.use(.mysql(
+        hostname: appConfig.database.hostname,
+        username: appConfig.database.username,
+        password: appConfig.database.password,
+        database: appConfig.database.database,
+        tlsConfiguration: tls
+    ), as: .mysql)
+    
+    
 
     // register routes
     try routes(app, appConfig)
