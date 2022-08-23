@@ -7,17 +7,12 @@ func routes(_ app: Application, _ appConfig: AppConfig) throws {
         return "It works!"
     }
 
+    
+
     app.get("getLines") { req async throws -> Response in
-        let lines = try await LineParser(appConfig)
-        return try await lines.parseVI2022(req)
+        let lines = try await LineParser(appConfig).parseVI2022(req)
+        return try await GameMatcher().load(req, appConfig: appConfig, lines: lines)
+
     }
 
-    app.get("test") { req async throws -> HTTPResponseStatus in
-        let formatter = DateFormatter()
-        formatter.dateFormat = "yyyy-MM-dd H:mm"
-        guard let result = formatter.date(from: "2022-08-27 18:32") else {
-            throw Abort(.internalServerError, reason: "could not convert string to date.")
-        }
-        return HTTPResponseStatus.ok
-    }
 }

@@ -12,7 +12,7 @@ import Fluent
 import FluentMySQLDriver
 
 final class Week: Model, Content {
-    var id: Int?
+
     
     typealias IDValue = Int
     
@@ -21,8 +21,8 @@ final class Week: Model, Content {
     @Field(key: "idPoolSubtypes")
     var idPoolSubtypes: Int
     
-    @ID(key: "idDWeeks")
-    var idDWeeks: Int?
+    @ID(custom: "idDWeeks")
+    var id: Int?
     
     @Field(key: "WeekName")
     var weekName: String
@@ -33,12 +33,13 @@ final class Week: Model, Content {
     @Field(key: "WeekDateEnd")
     var weekDateEnd: Date
 
-//    private enum CodingKeys: String, CodingKey {
-//        case id = "idDFootballTeams",
-//             teamName = "TeamName",
-//             teamUrl = "TeamUrl",
-//             fbsFlag = "FBSFlag"
-//    }
+    private enum CodingKeys: String, CodingKey {
+        case id = "idDWeeks",
+             idPoolSubtypes = "idPoolSubtypes",
+            weekName = "WeekName",
+            weekDateStart = "WeekDateStart",
+            weekDateEnd = "WeekDateEnd"
+    }
     
     required init() {
         

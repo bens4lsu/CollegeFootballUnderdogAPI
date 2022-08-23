@@ -17,7 +17,7 @@ enum LineParseError: Error {
 class LineParser {
     
     struct OnlineSpread: Codable, Content {
-        var dateString: Date
+        var date: Date
         var awayTeamString: String
         var homeTeamString: String
         var spreadValue: Double
@@ -63,7 +63,7 @@ class LineParser {
     }
     
     
-    func parseVI2022(_ req: Request) async throws -> Response {
+    func parseVI2022(_ req: Request) async throws -> [LineParser.OnlineSpread] {
         let sourceData = try await dataFromSource(req)
         guard let doc = try? SwiftSoup.parse(sourceData) else {
             throw Abort (.internalServerError, reason: "Unable to parse document at \(appConfig.linesUrl)")
@@ -84,10 +84,10 @@ class LineParser {
             let spreadValue = Double(spreadText)
             //print ("\(date)  \(away)  \(home)  \(spreadText)")
             if spreadValue != nil {
-                try lines.append(OnlineSpread(dateString: onlineDateToDate(req, date), awayTeamString: away, homeTeamString: home, spreadValue: spreadValue!))
+                try lines.append(OnlineSpread(date: onlineDateToDate(req, date), awayTeamString: away, homeTeamString: home, spreadValue: spreadValue!))
             }
         }
-        return try await lines.encodeResponse(for: req)
+        return lines
     }
     
     private func onlineDateToDate(_ req: Request, _ dt: String) throws -> Date {
@@ -124,7 +124,7 @@ class LineParser {
         }
         
     
-        var datetimeString = dateFormatterDateOnly.string(from: date) + " " + time + " " + timezoneString()
+        let datetimeString = dateFormatterDateOnly.string(from: date) + " " + time + " " + timezoneString()
         //print ("\(datetimeString) \(dateFormatterDateTime.date(from: datetimeString))")
         guard let finalDt = dateFormatterDateTime.date(from: datetimeString) else {
             throw Abort(.internalServerError, reason: "Could not translate \"\(datetimeString)\" into a datetime")

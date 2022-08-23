@@ -23,8 +23,6 @@ public func configure(_ app: Application) throws {
         tlsConfiguration: tls
     ), as: .mysql)
     
-    
-
     // register routes
     try routes(app, appConfig)
 }

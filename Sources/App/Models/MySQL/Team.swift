@@ -22,7 +22,7 @@ final class Team: Model, Content {
     var teamName: String
     
     @Field(key: "TeamUrl")
-    var teamUrl: String
+    var teamUrl: String?
     
     @Field(key: "FBSFlag")
     var fbsFlag: Bool
@@ -37,6 +37,5 @@ final class Team: Model, Content {
     required init() {
         
     }
-    
 
 }
