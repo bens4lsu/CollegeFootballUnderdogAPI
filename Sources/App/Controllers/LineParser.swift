@@ -97,7 +97,7 @@ class LineParser {
         }
         
         var date: Date
-        if weekdays.contains(firstWord) || firstWord == "Today" {
+        if weekdays.contains(firstWord) || firstWord == "Today" || firstWord == "Tomorrow" {
             date = try dateFromWord(req, firstWord)
         }
         else {
@@ -136,6 +136,9 @@ class LineParser {
     private func dateFromWord(_ req: Request, _ targetDay: String) throws -> Date {
         if targetDay == "Today" {
             return Date()
+        }
+        else if targetDay == "Tomorrow" {
+	    return Calendar.current.date(byAdding: .day, value: 1, to: Date())!
         }
         
         let weekDayIndexToday = calendar.component(.weekday, from: Date())
