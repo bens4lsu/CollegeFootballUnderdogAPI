@@ -1,12 +1,12 @@
 #!/bin/bash
 
-#supervisorctl stop ScramFile
+supervisorctl stop CollegeFootballUnderdog
 git pull
 swift package update
 swift build --configuration release
 chown -R vapor:vapor .build
 chmod -R 775 .build
-#supervisorctl start ScramFile
+supervisorctl start CollegeFootballUnderdog
 
 
 

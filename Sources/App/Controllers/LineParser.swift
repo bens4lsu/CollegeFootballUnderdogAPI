@@ -82,8 +82,8 @@ class LineParser {
             let home = try gameInfoElement.secondChild().firstChild().secondChild().firstChild().select("span").text()
             let spreadText = try elements[i].select(".odds-box")[1].firstChild().text()
             let spreadValue = Double(spreadText)
-            //print ("\(date)  \(away)  \(home)  \(spreadText)")
-            if spreadValue != nil {
+            print ("\(date)  \(away)  \(home)  \(spreadText)")
+            if spreadValue != nil && date != "Live" {
                 try lines.append(OnlineSpread(date: onlineDateToDate(req, date), awayTeamString: away, homeTeamString: home, spreadValue: spreadValue!))
             }
         }
