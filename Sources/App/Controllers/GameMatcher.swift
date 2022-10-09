@@ -44,27 +44,26 @@ class GameMatcher {
         }
     }
     
-    struct GameMatherResponseAll: Codable, Content {
+    
+    struct GameMatcherResponseAll: Codable, Content {
         var games: [GameMatcherResponse]
         var teamNameMatchErrors: [String]
+        
+        func exceptPickFor(_ req: Request, user: Int, week: Week) async throws -> GameMatcherResponseAll {
+            let pickCollection = try await PickCollection().picksFor(req, weekId: week.id, poolUserId: user)
+            let filterGames = pickCollection.compactMap{ $0.gameId }
+            let games = self.games.filter { !filterGames.contains($0.gameId) }
+            return GameMatcherResponseAll (games: games, teamNameMatchErrors: self.teamNameMatchErrors)
+        }
     }
 
     
-    func load(_ req: Request, appConfig: AppConfig, lines: [LineParser.OnlineSpread]) async throws -> Response {
+    func load(_ req: Request, appConfig: AppConfig, lines: [LineParser.OnlineSpread], week: Week) async throws -> GameMatcherResponseAll {
         
         if Self.teamList.isEmpty {
             Self.teamList = try await Team.query(on: req.db).all()
         }
-        
-        guard let week = try await Week.query(on: req.db)
-                                        .filter(\.$weekDateStart < Date())
-                                        .filter(\.$weekDateEnd >= Date())
-                                        .sort(\.$weekDateEnd)
-                                        .first()
-        else {
-            throw Abort(.internalServerError, reason: "No weeks configured that correspond to the current date.")
-        }
-                
+                        
         //let allTeamNames = teamList.map{$0.teamName}
         var findTeamErrors = [String]()
         var gamesThisWeek = [GameMatcherResponse]()
@@ -95,8 +94,7 @@ class GameMatcher {
             }
         }
         
-        let response = GameMatherResponseAll(games: gamesThisWeek, teamNameMatchErrors: findTeamErrors.sorted())
-        return try await response.encodeResponse(for: req)
+        return GameMatcherResponseAll(games: gamesThisWeek, teamNameMatchErrors: findTeamErrors.sorted())
     }
     
     private func matchTeam(teamName searchName: String) -> Team? {
@@ -111,5 +109,7 @@ class GameMatcher {
                                         .filter(\.$week == weekId)
                                         .first()
     }
+    
+    
 
 }
