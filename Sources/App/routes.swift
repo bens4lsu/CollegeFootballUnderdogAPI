@@ -29,6 +29,20 @@ func routes(_ app: Application, _ appConfig: AppConfig) throws {
         return try await gameMatcherResponse.encodeResponse(for: req)
     }
     
+    app.post("newMessage") { req async throws -> Response in
+        struct NewMessagePost: Codable {
+            var user: Int
+            var message: String
+            var messageParent: Int
+            var poolId: Int
+        }
+        
+        let newMessage = try req.content.decode(NewMessagePost.self)
+        let poolMessage = PoolMessage(poolId: newMessage.poolId, parentPoolMessageId: newMessage.messageParent, message: newMessage.message, enteredBy: newMessage.user)
+        try await poolMessage.save(on: req.db)
+        return try await "ok".encodeResponse(for: req)
+    }
+    
     
     
     func currentWeek(_ req: Request) async throws -> Week {
