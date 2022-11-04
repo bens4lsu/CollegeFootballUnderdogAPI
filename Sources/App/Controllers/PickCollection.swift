@@ -16,15 +16,15 @@ class PickCollection {
         
         var picks = FlattenedPick.query(on: req.db)
         
-        if let weekId {
+        if let weekId = weekId {
             picks = picks.filter(\.$weekId == weekId)
         }
         
-        if let poolUserId {
+        if let poolUserId = poolUserId {
             picks = picks.filter(\.$poolUserId == poolUserId)
         }
         
-        if let poolId {
+        if let poolId = poolId {
             picks = picks.filter(\.$poolId == poolId)
         }
         
