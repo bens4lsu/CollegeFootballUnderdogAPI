@@ -10,24 +10,35 @@ func routes(_ app: Application, _ appConfig: AppConfig) throws {
     
 
     app.get("getLines") { req async throws -> Response in
+        struct PoolUserEntryContent: Content {
+            var poolUserEntryId: String?
+        }
+        
         let lines = try await LineParser(appConfig).parseVI2022(req)
         let week = try await currentWeek(req)
-        let gameMatcherResponse = try await GameMatcher().load(req, appConfig: appConfig, lines: lines, week: week)
+        var gameMatcherResponse = try await GameMatcher().load(req, appConfig: appConfig, lines: lines, week: week)
+        if let poolUserParamContent = try? req.query.decode(PoolUserEntryContent.self),
+           let poolUserParamStr = poolUserParamContent.poolUserEntryId,
+           let poolUserParam = Int(poolUserParamStr)
+        {
+            gameMatcherResponse = try await gameMatcherResponse.exceptPickFor(req, user: poolUserParam, week: week)
+        }
         return try await gameMatcherResponse.encodeResponse(for: req)
     }
     
-    app.get("getLines", ":poolUserId") { req async throws -> Response in
-        guard let poolUserParam = req.parameters.get("poolUserId"),
-            let poolUserId = Int(poolUserParam)
-        else {
-            throw Abort(.badRequest, reason: "invalid request vecotor unless poolUserId parameter is provided")
-        }
-        let lines = try await LineParser(appConfig).parseVI2022(req)
-        let week = try await currentWeek(req)
-        let gameMatcherResponse = try await GameMatcher().load(req, appConfig: appConfig, lines: lines, week: week)
-                                                         .exceptPickFor(req, user: poolUserId, week: week)
-        return try await gameMatcherResponse.encodeResponse(for: req)
-    }
+//    app.get("getLines", ":poolUserIEntryd") { req async throws -> Response in
+//        print ("here")
+//        guard let poolUserParam = req.parameters.get("poolUserEntryId"),
+//            let poolUserId = Int(poolUserParam)
+//        else {
+//            throw Abort(.badRequest, reason: "invalid request vecotor unless poolUserId parameter is provided")
+//        }
+//        let lines = try await LineParser(appConfig).parseVI2022(req)
+//        let week = try await currentWeek(req)
+//        let gameMatcherResponse = try await GameMatcher().load(req, appConfig: appConfig, lines: lines, week: week)
+//                                                         .exceptPickFor(req, user: poolUserId, week: week)
+//        return try await gameMatcherResponse.encodeResponse(for: req)
+//    }
     
     app.post("newMessage") { req async throws -> Response in
         struct NewMessagePost: Codable {

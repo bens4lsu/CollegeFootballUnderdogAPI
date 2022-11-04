@@ -10,9 +10,12 @@ import Vapor
 import Fluent
 import FluentMySQLDriver
 
-class PickCollection {
+
+typealias PickCollection = [FlattenedPick]
+
+extension PickCollection {
     
-    func picksFor(_ req: Request, weekId: Int? = nil, poolUserId: Int? = nil, poolId: Int? = nil) async throws -> [FlattenedPick] {
+    func picksFor(_ req: Request, weekId: Int? = nil, poolUserId: Int? = nil, poolId: Int? = nil, poolUserEntryId: Int? = nil) async throws -> [FlattenedPick] {
         
         var picks = FlattenedPick.query(on: req.db)
         
@@ -22,6 +25,10 @@ class PickCollection {
         
         if let poolUserId = poolUserId {
             picks = picks.filter(\.$poolUserId == poolUserId)
+        }
+        
+        if let poolUserEntryId = poolUserEntryId {
+            picks = picks.filter(\.$poolUserEntryId == poolUserEntryId)
         }
         
         if let poolId = poolId {

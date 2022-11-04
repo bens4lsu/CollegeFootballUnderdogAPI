@@ -22,7 +22,7 @@ final class FlattenedPick: Model, Content {
     var poolUserId: Int
     
     @Field(key: "idPoolUserEntries")
-    var idPoolUserEntry: Int
+    var poolUserEntryId: Int
     
     @Field(key: "idDWeeks")
     var weekId: Int
@@ -58,10 +58,10 @@ final class FlattenedPick: Model, Content {
     var spread: Float
     
     @Field(key: "ScoreHome")
-    var scoreHome: Int
+    var scoreHome: Int?
     
     @Field(key: "ScoreAway")
-    var scoreAway: Int
+    var scoreAway: Int?
     
     @Field(key: "Kickoff")
     var kickoff: Date

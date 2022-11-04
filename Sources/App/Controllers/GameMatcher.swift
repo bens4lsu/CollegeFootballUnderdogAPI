@@ -50,7 +50,7 @@ class GameMatcher {
         var teamNameMatchErrors: [String]
         
         func exceptPickFor(_ req: Request, user: Int, week: Week) async throws -> GameMatcherResponseAll {
-            let pickCollection = try await PickCollection().picksFor(req, weekId: week.id, poolUserId: user)
+            let pickCollection = try await PickCollection().picksFor(req, weekId: week.id, poolUserEntryId: user)
             let filterGames = pickCollection.compactMap{ $0.gameId }
             let games = self.games.filter { !filterGames.contains($0.gameId) }
             return GameMatcherResponseAll (games: games, teamNameMatchErrors: self.teamNameMatchErrors)
