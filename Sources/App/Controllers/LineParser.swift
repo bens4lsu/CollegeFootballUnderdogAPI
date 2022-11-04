@@ -35,7 +35,8 @@ class LineParser {
     
     private var dateFormatterDateTime: DateFormatter {
         let formatter = DateFormatter()
-        formatter.dateFormat = "yyyy-MM-dd H:mm Z"
+        formatter.dateFormat = "yyyy-MM-dd H:mm"
+        formatter.timeZone = TimeZone(abbreviation: "EST")
         return formatter
     }
     
@@ -69,21 +70,25 @@ class LineParser {
             throw Abort (.internalServerError, reason: "Unable to parse document at \(appConfig.linesUrl)")
         }
 
-        guard let elements = try? doc.select("div.odds-slider-all") else {
-            throw Abort(.internalServerError, reason: "Did not find \"div.elements\" in document at \(appConfig.linesUrl)")
+        guard let elements = try? doc.select("div.odds-slider-all"),
+              elements.count > 0
+        else {
+            throw Abort(.internalServerError, reason: "Did not find \"div.odds-slider-all\" in document at \(appConfig.linesUrl)")
         }
+        
+        
         
         var lines = [OnlineSpread]()
         // don't sart at 0.  Line 0 is just headings.
         for i in 1..<elements.count {
             let gameInfoElement = try elements[i].firstChild()
             let date = try gameInfoElement.firstChild().ownText()
-            let away = try gameInfoElement.secondChild().firstChild().firstChild().firstChild().select("span").text()
-            let home = try gameInfoElement.secondChild().firstChild().secondChild().firstChild().select("span").text()
+            let away = try gameInfoElement.secondChild().firstChild().firstChild().secondChild().text()
+            let home = try gameInfoElement.secondChild().firstChild().secondChild().secondChild().text()
             let spreadText = try elements[i].select(".odds-box")[1].firstChild().text()
             let spreadValue = Double(spreadText)
             let countDateParts = date.components(separatedBy: " ").count
-            print ("\(date)  \(away)  \(home)  \(spreadText)")
+            //print ("\(date)  \(away)  \(home)  \(spreadText)")
             if spreadValue != nil && date != "Live" && date != "Final" && countDateParts > 2 {
                 try lines.append(OnlineSpread(date: onlineDateToDate(req, date), awayTeamString: away, homeTeamString: home, spreadValue: spreadValue!))
             }
@@ -125,7 +130,7 @@ class LineParser {
         }
         
     
-        let datetimeString = dateFormatterDateOnly.string(from: date) + " " + time + " " + timezoneString()
+        let datetimeString = dateFormatterDateOnly.string(from: date) + " " + time
         //print ("\(datetimeString) \(dateFormatterDateTime.date(from: datetimeString))")
         guard let finalDt = dateFormatterDateTime.date(from: datetimeString) else {
             throw Abort(.internalServerError, reason: "Could not translate \"\(datetimeString)\" into a datetime")
@@ -167,13 +172,13 @@ class LineParser {
         return String(hour) + ":" + hmParts[1]
     }
     
-    private func timezoneString() -> String {
-        let tz = TimeZone.current
-        if tz.isDaylightSavingTime() {
-            return appConfig.dstOffset
-        }
-        return appConfig.stOffset
-    }
+//    private func timezoneString() -> String {
+//        let tz = TimeZone.current
+//        if tz.isDaylightSavingTime() {
+//            return appConfig.dstOffset
+//        }
+//        return appConfig.stOffset
+//    }
     
     
 }

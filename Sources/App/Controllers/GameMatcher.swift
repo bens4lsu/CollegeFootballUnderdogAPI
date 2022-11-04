@@ -68,7 +68,6 @@ class GameMatcher {
         var findTeamErrors = [String]()
         var gamesThisWeek = [GameMatcherResponse]()
         for line in lines {
-            
             let homeTeam = matchTeam(teamName: line.homeTeamString)
             let awayTeam = matchTeam(teamName: line.awayTeamString)
             if homeTeam == nil {
@@ -98,7 +97,7 @@ class GameMatcher {
     }
     
     private func matchTeam(teamName searchName: String) -> Team? {
-        Self.teamList.filter { team in
+        return Self.teamList.filter { team in
             team.teamName == searchName
         }.first
     }
