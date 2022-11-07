@@ -81,16 +81,18 @@ class LineParser {
         var lines = [OnlineSpread]()
         // don't sart at 0.  Line 0 is just headings.
         for i in 1..<elements.count {
-            let gameInfoElement = try elements[i].firstChild()
-            let date = try gameInfoElement.firstChild().ownText()
-            let away = try gameInfoElement.secondChild().firstChild().firstChild().secondChild().text()
-            let home = try gameInfoElement.secondChild().firstChild().secondChild().secondChild().text()
-            let spreadText = try elements[i].select(".odds-box")[1].firstChild().text()
-            let spreadValue = Double(spreadText)
-            let countDateParts = date.components(separatedBy: " ").count
-            //print ("\(date)  \(away)  \(home)  \(spreadText)")
-            if spreadValue != nil && date != "Live" && date != "Final" && countDateParts > 2 {
-                try lines.append(OnlineSpread(date: onlineDateToDate(req, date), awayTeamString: away, homeTeamString: home, spreadValue: spreadValue!))
+            if let gameInfoElement = try? elements[i].firstChild(),
+                let date = try? gameInfoElement.firstChild().ownText(),
+                let away = try? gameInfoElement.secondChild().firstChild().firstChild().secondChild().text(),
+                let home = try? gameInfoElement.secondChild().firstChild().secondChild().secondChild().text(),
+                let spreadText = try? elements[i].select(".odds-box")[1].firstChild().text(),
+                let spreadValue = Double(spreadText)
+            {
+                let countDateParts = date.components(separatedBy: " ").count
+                //print ("\(date)  \(away)  \(home)  \(spreadText)")
+                if spreadValue != nil && date != "Live" && date != "Final" && countDateParts > 2 {
+                    try lines.append(OnlineSpread(date: onlineDateToDate(req, date), awayTeamString: away, homeTeamString: home, spreadValue: spreadValue))
+                }
             }
         }
         return lines
