@@ -139,11 +139,11 @@ class LineParser {
                 logger.trace("spread parse error -- .odds-box not found")
                 return nil
             }
-            guard div1.count > 0 else {
+            guard div1.count > 1 else {
                 logger.trace("spread parse error -- .odds-box  not found (with count)")
                 return nil
             }
-            guard let div2 = try? div1[0].select(".pt-2") else {
+            guard let div2 = try? div1[1].select(".pt-2") else {
                 logger.trace("spread parse error -- .odds-box .pt-2 not found")
                 return nil
             }
