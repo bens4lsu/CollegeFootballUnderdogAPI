@@ -24,6 +24,7 @@ final class AppConfig: Codable {
     let linesUrl: String
     let listenOnPort: Int
     let database: AppConfig.Database
+    let logLevel: String
 
     var certificateVerification: CertificateVerification {
         if database.certificateVerificationString == "noHostnameVerification" {
@@ -33,6 +34,10 @@ final class AppConfig: Codable {
             return .fullVerification
         }
         return .none
+    }
+    
+    var loggerLogLevel: Logger.Level {
+        Logger.Level(rawValue: logLevel) ?? .error
     }
 
     init() {
@@ -46,6 +51,7 @@ final class AppConfig: Codable {
             self.linesUrl = decoded.linesUrl
             self.listenOnPort = decoded.listenOnPort
             self.database = decoded.database
+            self.logLevel = decoded.logLevel
         }
         catch {
             print ("Could not initialize app from Config.json.  Initilizing with hard-coded default values. \n \(error)")

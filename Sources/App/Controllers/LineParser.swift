@@ -45,6 +45,7 @@ class LineParser {
         formatter.dateFormat = "MMM dd, yyyy"
         return formatter
     }
+    
 
     init(_ appConfig: AppConfig) async throws {
         self.appConfig = appConfig
@@ -65,6 +66,8 @@ class LineParser {
     
     
     func parseVI2022(_ req: Request) async throws -> [LineParser.OnlineSpread] {
+        var logger = req.application.logger
+        logger.logLevel = appConfig.loggerLogLevel
         let sourceData = try await dataFromSource(req)
         guard let doc = try? SwiftSoup.parse(sourceData) else {
             throw Abort (.internalServerError, reason: "Unable to parse document at \(appConfig.linesUrl)")
@@ -76,21 +79,96 @@ class LineParser {
             throw Abort(.internalServerError, reason: "Did not find \"div.odds-slider-all\" in document at \(appConfig.linesUrl)")
         }
         
-        
-        
         var lines = [OnlineSpread]()
         // don't sart at 0.  Line 0 is just headings.
+        
+        let gameInfoElementParse: (Element?) -> Element? = { e in
+            let elem = e//.firstChild()
+            let logEntry = elem == nil ? "gameInfo element not found" : "gameInfo element found" 
+            logger.trace(Logger.Message(stringLiteral: logEntry))
+            return elem
+        }
+        
+        let dateParse: (Element) -> String? = { e in
+            guard let div = try? e.select(".py-2") else {
+                logger.trace("Date parse error -- .py-2 not found")
+                return nil
+            }
+            guard div.count > 0 else {
+                logger.trace("Date parse error -- .py.2 not found (with count)")
+                return nil
+            }
+            let str = try? div[0].text()
+            let logEntry = str == nil ? "date text not found" : "date: \(str!)"
+            logger.trace(Logger.Message(stringLiteral: logEntry))
+            return str
+        }
+        
+        let awayParse: (Element) -> String? = { e in
+            guard let div = try? e.select(".my-auto") else {
+                logger.trace("Away parse error -- .my-auto not found")
+                return nil
+            }
+            guard div.count > 0 else {
+                logger.trace("Away parse error -- .my-auto not found (with count)")
+                return nil
+            }
+            let str = try? div[0].text()
+            let logEntry = str == nil ? "away team text not found" : "away: \(str!)"
+            logger.trace(Logger.Message(stringLiteral: logEntry))
+            return str
+        }
+        
+        let homeParse: (Element) -> String? = { e in
+            guard let div = try? e.select(".my-auto") else {
+                logger.trace("Home parse error -- .my-auto not found")
+                return nil
+            }
+            guard div.count > 1 else {
+                logger.trace("Home parse error -- .my-auto not found (with count)")
+                return nil
+            }
+            let str = try? div[1].text()
+            let logEntry = str == nil ? "home team text not found" : "home: \(str!)"
+            logger.trace(Logger.Message(stringLiteral: logEntry))
+            return str
+        }
+        
+        let spreadTextParse: (Element) -> String? = { e in
+            guard let div1 = try? e.select(".odds-box") else {
+                logger.trace("spread parse error -- .odds-box not found")
+                return nil
+            }
+            guard div1.count > 0 else {
+                logger.trace("spread parse error -- .odds-box  not found (with count)")
+                return nil
+            }
+            guard let div2 = try? div1[0].select(".pt-2") else {
+                logger.trace("spread parse error -- .odds-box .pt-2 not found")
+                return nil
+            }
+            guard div2.count > 0 else {
+                logger.trace("spread parse error -- .odds-box .pt-2 not found (with count)")
+                return nil
+            }
+            let str = try? div2[0].text()
+            let logEntry = str == nil ? "spread text not found" : "spread: \(str!)"
+            logger.trace(Logger.Message(stringLiteral: logEntry))
+            return str
+        }
+        
+        
         for i in 1..<elements.count {
-            if let gameInfoElement = try? elements[i].firstChild(),
-                let date = try? gameInfoElement.firstChild().ownText(),
-                let away = try? gameInfoElement.secondChild().firstChild().firstChild().secondChild().text(),
-                let home = try? gameInfoElement.secondChild().firstChild().secondChild().secondChild().text(),
-                let spreadText = try? elements[i].select(".odds-box")[1].firstChild().text(),
-                let spreadValue = Double(spreadText)
+            if let gameInfoElement = gameInfoElementParse(elements[i]),
+               let date = dateParse(gameInfoElement),
+               let away = awayParse(gameInfoElement),
+               let home = homeParse(gameInfoElement),
+               let spreadText = spreadTextParse(gameInfoElement),
+               let spreadValue = Double(spreadText)
             {
                 let countDateParts = date.components(separatedBy: " ").count
-                //print ("\(date)  \(away)  \(home)  \(spreadText)")
-                if spreadValue != nil && date != "Live" && date != "Final" && countDateParts > 2 {
+                logger.debug("\(date)  \(away)  \(home)  \(spreadText)")
+                if date != "Live" && date != "Final" && countDateParts > 2 {
                     try lines.append(OnlineSpread(date: onlineDateToDate(req, date), awayTeamString: away, homeTeamString: home, spreadValue: spreadValue))
                 }
             }
@@ -185,7 +263,7 @@ class LineParser {
     
 }
 
-fileprivate extension Element {
+extension Element {
     func firstChild() throws -> Element {
         guard self.children().count >= 1 else {
             throw LineParseError.expectedChildNotPresent

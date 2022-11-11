@@ -26,6 +26,10 @@ func routes(_ app: Application, _ appConfig: AppConfig) throws {
         return try await gameMatcherResponse.encodeResponse(for: req)
     }
     
+    app.get("testLines") { req async throws -> Response in
+        try await LineParser(appConfig).parseVI2022(req).encodeResponse(for: req)
+    }
+    
 //    app.get("getLines", ":poolUserIEntryd") { req async throws -> Response in
 //        print ("here")
 //        guard let poolUserParam = req.parameters.get("poolUserEntryId"),
