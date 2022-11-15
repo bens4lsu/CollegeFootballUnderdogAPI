@@ -83,78 +83,25 @@ class LineParser {
         // don't sart at 0.  Line 0 is just headings.
         
         let gameInfoElementParse: (Element?) -> Element? = { e in
-            let elem = e//.firstChild()
-            let logEntry = elem == nil ? "gameInfo element not found" : "gameInfo element found" 
-            logger.trace(Logger.Message(stringLiteral: logEntry))
-            return elem
+            self.loggedDOMParse(element: e, pattern: nil, logger: logger, instance: 0)
         }
         
         let dateParse: (Element) -> String? = { e in
-            guard let div = try? e.select(".py-2") else {
-                logger.trace("Date parse error -- .py-2 not found")
-                return nil
-            }
-            guard div.count > 0 else {
-                logger.trace("Date parse error -- .py.2 not found (with count)")
-                return nil
-            }
-            let str = try? div[0].text()
-            let logEntry = str == nil ? "date text not found" : "date: \(str!)"
-            logger.trace(Logger.Message(stringLiteral: logEntry))
-            return str
+            self.loggedDOMParse(element: e, pattern: ".py-2", logger: logger, instance: 0)
         }
         
         let awayParse: (Element) -> String? = { e in
-            guard let div = try? e.select(".my-auto") else {
-                logger.trace("Away parse error -- .my-auto not found")
-                return nil
-            }
-            guard div.count > 0 else {
-                logger.trace("Away parse error -- .my-auto not found (with count)")
-                return nil
-            }
-            let str = try? div[0].text()
-            let logEntry = str == nil ? "away team text not found" : "away: \(str!)"
-            logger.trace(Logger.Message(stringLiteral: logEntry))
-            return str
+            self.loggedDOMParse(element: e, pattern: ".my-auto", logger: logger, instance: 0)
         }
         
         let homeParse: (Element) -> String? = { e in
-            guard let div = try? e.select(".my-auto") else {
-                logger.trace("Home parse error -- .my-auto not found")
-                return nil
-            }
-            guard div.count > 1 else {
-                logger.trace("Home parse error -- .my-auto not found (with count)")
-                return nil
-            }
-            let str = try? div[1].text()
-            let logEntry = str == nil ? "home team text not found" : "home: \(str!)"
-            logger.trace(Logger.Message(stringLiteral: logEntry))
-            return str
+            self.loggedDOMParse(element: e, pattern: ".my-auto", logger: logger, instance: 1)
         }
         
         let spreadTextParse: (Element) -> String? = { e in
-            guard let div1 = try? e.select(".odds-box") else {
-                logger.trace("spread parse error -- .odds-box not found")
-                return nil
-            }
-            guard div1.count > 1 else {
-                logger.trace("spread parse error -- .odds-box  not found (with count)")
-                return nil
-            }
-            guard let div2 = try? div1[1].select(".pt-2") else {
-                logger.trace("spread parse error -- .odds-box .pt-2 not found")
-                return nil
-            }
-            guard div2.count > 0 else {
-                logger.trace("spread parse error -- .odds-box .pt-2 not found (with count)")
-                return nil
-            }
-            let str = try? div2[0].text()
-            let logEntry = str == nil ? "spread text not found" : "spread: \(str!)"
-            logger.trace(Logger.Message(stringLiteral: logEntry))
-            return str
+            let elem: Element? = self.loggedDOMParse(element: e, pattern: ".odds-box", logger: logger, instance: 1)
+            
+            return self.loggedDOMParse(element: elem, pattern: ".pt-2", logger: logger, instance: 0)
         }
         
         
@@ -252,31 +199,57 @@ class LineParser {
         return String(hour) + ":" + hmParts[1]
     }
     
-//    private func timezoneString() -> String {
-//        let tz = TimeZone.current
-//        if tz.isDaylightSavingTime() {
-//            return appConfig.dstOffset
-//        }
-//        return appConfig.stOffset
-//    }
+    private func loggedDOMParse(element: Element?, pattern: String?, description: String? = nil, logger: Logger, instance: Int) -> Element? {
+        
+        var elems : Elements?
+        if let pattern {
+            elems = try? element?.select(pattern)
+        }
+        else if element != nil {
+            var array = [Element]()
+            array.append(element!)
+            elems = Elements(array)
+        }
+            
+        guard let div = elems else {
+            logger.trace("\(description ?? "") parse error -- \(pattern ?? "<<no pattern>>") not found")
+            return nil
+        }
+        guard div.count > 0 else {
+            logger.trace("\(description ?? "") parse error -- \(pattern ?? "<<no pattern>>") not found (with count \(div.count)")
+            return nil
+        }
+        if div.count < instance + 1 {
+            logger.trace("\(description ?? "") parse error -- < \(instance) instances of \(pattern ?? "<<no pattern>>") found.")
+            return nil
+        }
+        logger.trace("\(description ?? "") parse successful")
+        return div[instance]
+    }
     
-    
+    private func loggedDOMParse(element: Element?, pattern: String, description: String? = nil, logger: Logger, instance: Int) -> String? {
+        let elem: Element? = loggedDOMParse(element: element, pattern: pattern, logger: logger, instance: instance)
+        let str = try? elem?.text()
+        let logEntry = str == nil ? "\(description ?? "") text not found" : "\(description ?? ""): \(str!)"
+        logger.trace(Logger.Message(stringLiteral: logEntry))
+        return str
+    }
 }
 
-extension Element {
-    func firstChild() throws -> Element {
-        guard self.children().count >= 1 else {
-            throw LineParseError.expectedChildNotPresent
-        }
-        return self.children()[0]
-    }
-    
-    func secondChild() throws -> Element{
-        guard self.children().count >= 2 else {
-            throw LineParseError.expectedChildNotPresent
-        }
-        return self.children()[1]
-    }
-}
+//extension Element {
+//    func firstChild() throws -> Element {
+//        guard self.children().count >= 1 else {
+//            throw LineParseError.expectedChildNotPresent
+//        }
+//        return self.children()[0]
+//    }
+//    
+//    func secondChild() throws -> Element{
+//        guard self.children().count >= 2 else {
+//            throw LineParseError.expectedChildNotPresent
+//        }
+//        return self.children()[1]
+//    }
+//}
 
 
