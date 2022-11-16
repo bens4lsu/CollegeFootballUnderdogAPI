@@ -83,25 +83,24 @@ class LineParser {
         // don't sart at 0.  Line 0 is just headings.
         
         let gameInfoElementParse: (Element?) -> Element? = { e in
-            self.loggedDOMParse(element: e, pattern: nil, logger: logger, instance: 0)
+            self.loggedDOMParse(element: e, pattern: nil, instance: 0, logger: logger)
         }
         
         let dateParse: (Element) -> String? = { e in
-            self.loggedDOMParse(element: e, pattern: ".py-2", logger: logger, instance: 0)
+            self.loggedDOMParse(element: e, pattern: ".py-2", instance: 0, logger: logger)
         }
         
         let awayParse: (Element) -> String? = { e in
-            self.loggedDOMParse(element: e, pattern: ".my-auto", logger: logger, instance: 0)
+            self.loggedDOMParse(element: e, pattern: ".my-auto", instance: 0, logger: logger)
         }
         
         let homeParse: (Element) -> String? = { e in
-            self.loggedDOMParse(element: e, pattern: ".my-auto", logger: logger, instance: 1)
+            self.loggedDOMParse(element: e, pattern: ".my-auto", instance: 1, logger: logger)
         }
         
         let spreadTextParse: (Element) -> String? = { e in
-            let elem: Element? = self.loggedDOMParse(element: e, pattern: ".odds-box", logger: logger, instance: 1)
-            
-            return self.loggedDOMParse(element: elem, pattern: ".pt-2", logger: logger, instance: 0)
+            let elem: Element? = self.loggedDOMParse(element: e, pattern: ".odds-box", instance: 1, logger: logger)
+            return self.loggedDOMParse(element: elem, pattern: ".pt-2", instance: 0, logger: logger)
         }
         
         
@@ -199,7 +198,7 @@ class LineParser {
         return String(hour) + ":" + hmParts[1]
     }
     
-    private func loggedDOMParse(element: Element?, pattern: String?, description: String? = nil, logger: Logger, instance: Int) -> Element? {
+    private func loggedDOMParse(element: Element?, pattern: String?, instance: Int, description: String? = nil, logger: Logger) -> Element? {
         
         var elems : Elements?
         if let pattern {
@@ -215,7 +214,7 @@ class LineParser {
             logger.trace("\(description ?? "") parse error -- \(pattern ?? "<<no pattern>>") not found")
             return nil
         }
-        guard div.count > 0 else {
+        guard div.count > instance else {
             logger.trace("\(description ?? "") parse error -- \(pattern ?? "<<no pattern>>") not found (with count \(div.count)")
             return nil
         }
@@ -227,8 +226,8 @@ class LineParser {
         return div[instance]
     }
     
-    private func loggedDOMParse(element: Element?, pattern: String, description: String? = nil, logger: Logger, instance: Int) -> String? {
-        let elem: Element? = loggedDOMParse(element: element, pattern: pattern, logger: logger, instance: instance)
+    private func loggedDOMParse(element: Element?, pattern: String?, instance: Int, description: String? = nil, logger: Logger) -> String? {
+        let elem: Element? = loggedDOMParse(element: element, pattern: pattern, instance: instance, logger: logger)
         let str = try? elem?.text()
         let logEntry = str == nil ? "\(description ?? "") text not found" : "\(description ?? ""): \(str!)"
         logger.trace(Logger.Message(stringLiteral: logEntry))
@@ -243,7 +242,7 @@ class LineParser {
 //        }
 //        return self.children()[0]
 //    }
-//    
+//
 //    func secondChild() throws -> Element{
 //        guard self.children().count >= 2 else {
 //            throw LineParseError.expectedChildNotPresent
