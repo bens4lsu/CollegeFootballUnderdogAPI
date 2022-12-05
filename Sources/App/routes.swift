@@ -9,21 +9,30 @@ func routes(_ app: Application, _ appConfig: AppConfig) throws {
 
     
 
-    app.get("getLines") { req async throws -> Response in
-        struct PoolUserEntryContent: Content {
-            var poolUserEntryId: String?
+    app.get("getLines") { req async throws-> Response in
+        var response: GameMatcher.GameMatcherResponseAll
+        do {
+            struct PoolUserEntryContent: Content {
+                var poolUserEntryId: String?
+            }
+            
+            let lines = try await LineParser(appConfig).parseVI2022(req)
+            let week = try await currentWeek(req)
+            var gameMatcherResponse = try await GameMatcher().load(req, appConfig: appConfig, lines: lines, week: week)
+            if let poolUserParamContent = try? req.query.decode(PoolUserEntryContent.self),
+               let poolUserParamStr = poolUserParamContent.poolUserEntryId,
+               let poolUserParam = Int(poolUserParamStr)
+            {
+                gameMatcherResponse = try await gameMatcherResponse.exceptPickFor(req, user: poolUserParam, week: week)
+            }
+            response = gameMatcherResponse
         }
-        
-        let lines = try await LineParser(appConfig).parseVI2022(req)
-        let week = try await currentWeek(req)
-        var gameMatcherResponse = try await GameMatcher().load(req, appConfig: appConfig, lines: lines, week: week)
-        if let poolUserParamContent = try? req.query.decode(PoolUserEntryContent.self),
-           let poolUserParamStr = poolUserParamContent.poolUserEntryId,
-           let poolUserParam = Int(poolUserParamStr)
-        {
-            gameMatcherResponse = try await gameMatcherResponse.exceptPickFor(req, user: poolUserParam, week: week)
+        catch(let e) {
+            let message = Logger.Message(stringLiteral: e.localizedDescription) 
+            app.logger.error(message)
+            response = GameMatcher.GameMatcherResponseAll(games: [], teamNameMatchErrors: [], error: e.localizedDescription)
         }
-        return try await gameMatcherResponse.encodeResponse(for: req)
+        return try await response.encodeResponse(for: req)
     }
     
     app.get("testLines") { req async throws -> Response in

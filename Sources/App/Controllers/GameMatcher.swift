@@ -48,6 +48,7 @@ class GameMatcher {
     struct GameMatcherResponseAll: Codable, Content {
         var games: [GameMatcherResponse]
         var teamNameMatchErrors: [String]
+        var error: String?
         
         func exceptPickFor(_ req: Request, user: Int, week: Week) async throws -> GameMatcherResponseAll {
             let pickCollection = try await PickCollection().picksFor(req, weekId: week.id, poolUserEntryId: user)
