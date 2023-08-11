@@ -103,7 +103,7 @@ class LineParser {
         let spreadTextParse: (Element) -> String? = { e in
             // looking for away team's number, negative or positive
             let elementWithAwayData = try? e.nextElementSibling()
-            return self.loggedDOMParse(element: elementWithAwayData, pattern: "td.game-odds span.data-value", instance: 0, logger: logger)
+            return self.loggedDOMParse(element: elementWithAwayData, pattern: "td.game-odds:nth-of-type(3) span.data-value", instance: 0, logger: logger)
         }
         
         for i in 0..<(elements.count) {
