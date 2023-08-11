@@ -108,63 +108,69 @@ class LineParser {
         
         for i in 0..<(elements.count) {
             if let gameInfoElement = gameInfoElementParse(elements[i]),
-               let date = dateParse(gameInfoElement),
+               let stringDate = dateParse(gameInfoElement),
+               let dateDate = onlineDateToDate(stringDate),
                let away = awayParse(gameInfoElement),
                let home = homeParse(gameInfoElement),
                let spreadText = spreadTextParse(gameInfoElement),
                let spreadValue = Double(spreadText)
             {
-                let countDateParts = date.components(separatedBy: "T").count
-                logger.debug("\(date)  \(away)  \(home)  \(spreadText)")
-                if date != "Live" && date != "Final" && countDateParts > 2 {
-                    try lines.append(OnlineSpread(date: onlineDateToDate(req, date), awayTeamString: away, homeTeamString: home, spreadValue: spreadValue))
-                }
+                logger.debug("\(stringDate)  \(away)  \(home)  \(spreadText)")
+                lines.append(OnlineSpread(date: dateDate, awayTeamString: away, homeTeamString: home, spreadValue: spreadValue))
             }
         }
         return lines
     }
     
-    private func onlineDateToDate(_ req: Request, _ dt: String) throws -> Date {
-        let comps = dt.components(separatedBy: " ")
-        guard let firstWord = comps.first else {
-            throw Abort(.internalServerError, reason: "Error converting date in the game data to an actual date.")
-        }
-        
-        var date: Date
-        if weekdays.contains(firstWord) || firstWord == "Today" || firstWord == "Tomorrow" {
-            date = try dateFromWord(req, firstWord)
-        }
-        else {
-            var year = calendar.component(.year, from: Date())
-            if calendar.component(.month, from: Date()) == 1 {
-                year += 1
-            }
-            
-            guard let dateFromPage = dateFormatterShortDateOnPage.date(from: comps[0] + " " + comps[1] + ", " + String(year)) else {
-                throw Abort (.internalServerError, reason: "Error converting \(comps[0] + " " + comps[1]) to date.")
-            }
-            date = dateFromPage
-        }
-        
-        var time: String
-        guard comps.count == 4 || comps.count == 5 else {
-            throw Abort(.internalServerError, reason: "Could not parse time from \(String(describing: dt))")
-        }
-        if comps.count == 4 {
-            time = try timeTo24(hm: comps[1], ap: comps[2])
-        }
-        else  {
-            time = try timeTo24(hm: comps[2], ap: comps[3])
-        }
-        
-    
-        let datetimeString = dateFormatterDateOnly.string(from: date) + " " + time
-        //print ("\(datetimeString) \(dateFormatterDateTime.date(from: datetimeString))")
-        guard let finalDt = dateFormatterDateTime.date(from: datetimeString) else {
-            throw Abort(.internalServerError, reason: "Could not translate \"\(datetimeString)\" into a datetime")
-        }
-        return finalDt
+
+    private func onlineDateToDate(_ dt: String) -> Date? {
+        let dateFormatter = DateFormatter()
+        dateFormatter.locale = Locale(identifier: "en_US_POSIX") // set locale to reliable US_POSIX
+        dateFormatter.dateFormat = "yyyy-MM-dd'T'HH:mm:ssZ"
+        return dateFormatter.date(from: dt)
     }
+    
+//    private func onlineDateToDate(_ req: Request, _ dt: String) throws -> Date {
+//        let comps = dt.components(separatedBy: " ")
+//        guard let firstWord = comps.first else {
+//            throw Abort(.internalServerError, reason: "Error converting date in the game data to an actual date.")
+//        }
+//
+//        var date: Date
+//        if weekdays.contains(firstWord) || firstWord == "Today" || firstWord == "Tomorrow" {
+//            date = try dateFromWord(req, firstWord)
+//        }
+//        else {
+//            var year = calendar.component(.year, from: Date())
+//            if calendar.component(.month, from: Date()) == 1 {
+//                year += 1
+//            }
+//
+//            guard let dateFromPage = dateFormatterShortDateOnPage.date(from: comps[0] + " " + comps[1] + ", " + String(year)) else {
+//                throw Abort (.internalServerError, reason: "Error converting \(comps[0] + " " + comps[1]) to date.")
+//            }
+//            date = dateFromPage
+//        }
+//
+//        var time: String
+//        guard comps.count == 4 || comps.count == 5 else {
+//            throw Abort(.internalServerError, reason: "Could not parse time from \(String(describing: dt))")
+//        }
+//        if comps.count == 4 {
+//            time = try timeTo24(hm: comps[1], ap: comps[2])
+//        }
+//        else  {
+//            time = try timeTo24(hm: comps[2], ap: comps[3])
+//        }
+//
+//
+//        let datetimeString = dateFormatterDateOnly.string(from: date) + " " + time
+//        //print ("\(datetimeString) \(dateFormatterDateTime.date(from: datetimeString))")
+//        guard let finalDt = dateFormatterDateTime.date(from: datetimeString) else {
+//            throw Abort(.internalServerError, reason: "Could not translate \"\(datetimeString)\" into a datetime")
+//        }
+//        return finalDt
+//    }
     
     
     private func dateFromWord(_ req: Request, _ targetDay: String) throws -> Date {
