@@ -65,7 +65,7 @@ class LineParser {
     }
     
     
-    func parseVI2022(_ req: Request) async throws -> [LineParser.OnlineSpread] {
+    func parseVI2023(_ req: Request) async throws -> [LineParser.OnlineSpread] {
         var logger = req.application.logger
         logger.logLevel = appConfig.loggerLogLevel
         let sourceData = try await dataFromSource(req)
@@ -73,38 +73,40 @@ class LineParser {
             throw Abort (.internalServerError, reason: "Unable to parse document at \(appConfig.linesUrl)")
         }
 
-        guard let elements = try? doc.select("div.odds-slider-all"),
+        guard let elements = try? doc.select("td.game-time"),
               elements.count > 0
         else {
-            throw Abort(.internalServerError, reason: "Did not find \"div.odds-slider-all\" in document at \(appConfig.linesUrl)")
+            throw Abort(.internalServerError, reason: "Did not find \"td.game-time\" in document at \(appConfig.linesUrl)")
         }
         
         var lines = [OnlineSpread]()
         // don't sart at 0.  Line 0 is just headings.
         
         let gameInfoElementParse: (Element?) -> Element? = { e in
-            self.loggedDOMParse(element: e, pattern: nil, instance: 0, logger: logger)
+            self.loggedDOMParse(element: e?.parent(), pattern: nil, instance: 0, logger: logger)
         }
         
         let dateParse: (Element) -> String? = { e in
-            self.loggedDOMParse(element: e, pattern: ".py-2", instance: 0, logger: logger)
+            try? self.loggedDOMParse(element: e, pattern: "td.game-time > span", instance: 0, logger: logger)?.attr("data-value")
         }
         
         let awayParse: (Element) -> String? = { e in
-            self.loggedDOMParse(element: e, pattern: ".my-auto", instance: 0, logger: logger)
+            let elementWithAwayData = try? e.nextElementSibling()
+            return try? self.loggedDOMParse(element: elementWithAwayData, pattern: ".team-plate img", instance: 0, logger: logger)?.attr("alt")
         }
         
         let homeParse: (Element) -> String? = { e in
-            self.loggedDOMParse(element: e, pattern: ".my-auto", instance: 1, logger: logger)
+            let elementWithHomeData = try? e.nextElementSibling()?.nextElementSibling()
+            return try? self.loggedDOMParse(element: elementWithHomeData, pattern: ".team-plate img", instance: 0, logger: logger)?.attr("alt")
         }
         
         let spreadTextParse: (Element) -> String? = { e in
-            let elem: Element? = self.loggedDOMParse(element: e, pattern: ".odds-box", instance: 1, logger: logger)
-            return self.loggedDOMParse(element: elem, pattern: ".pt-2", instance: 0, logger: logger)
+            // looking for away team's number, negative or positive
+            let elementWithAwayData = try? e.nextElementSibling()
+            return self.loggedDOMParse(element: elementWithAwayData, pattern: "td.game-odds span.data-value", instance: 0, logger: logger)
         }
         
-        
-        for i in 1..<elements.count {
+        for i in 0..<(elements.count) {
             if let gameInfoElement = gameInfoElementParse(elements[i]),
                let date = dateParse(gameInfoElement),
                let away = awayParse(gameInfoElement),
@@ -112,7 +114,7 @@ class LineParser {
                let spreadText = spreadTextParse(gameInfoElement),
                let spreadValue = Double(spreadText)
             {
-                let countDateParts = date.components(separatedBy: " ").count
+                let countDateParts = date.components(separatedBy: "T").count
                 logger.debug("\(date)  \(away)  \(home)  \(spreadText)")
                 if date != "Live" && date != "Final" && countDateParts > 2 {
                     try lines.append(OnlineSpread(date: onlineDateToDate(req, date), awayTeamString: away, homeTeamString: home, spreadValue: spreadValue))
