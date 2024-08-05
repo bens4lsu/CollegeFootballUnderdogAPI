@@ -65,7 +65,7 @@ class LineParser {
     }
     
     
-    func parseVI2023(_ req: Request) async throws -> [LineParser.OnlineSpread] {
+    func parse(_ req: Request) async throws -> [LineParser.OnlineSpread] {
         var logger = req.application.logger
         logger.logLevel = appConfig.loggerLogLevel
         let sourceData = try await dataFromSource(req)
@@ -73,43 +73,45 @@ class LineParser {
             throw Abort (.internalServerError, reason: "Unable to parse document at \(appConfig.linesUrl)")
         }
 
-        guard let elements = try? doc.select("td.game-time"),
+        guard let elements = try? doc.select("table.sportsbook-table tr:nth-child(2), table.sportsbook-table tr.break-line"),
+        //guard let elements = try? doc.select("table.sportsbook-table tr.break-line"),
               elements.count > 0
         else {
-            throw Abort(.internalServerError, reason: "Did not find \"td.game-time\" in document at \(appConfig.linesUrl)")
+            throw Abort(.internalServerError, reason: "Did not find \"table.sportsbook-table tr:nth-child(2), table.sportsbook-table tr.break-line\" in document at \(appConfig.linesUrl)")
         }
         
+        logger.debug("\(elements.count) elements")
+                
         var lines = [OnlineSpread]()
-        // don't sart at 0.  Line 0 is just headings.
         
         let gameInfoElementParse: (Element?) -> Element? = { e in
-            self.loggedDOMParse(element: e?.parent(), pattern: nil, instance: 0, logger: logger)
+            //self.loggedDOMParse(element: e, pattern: nil, instance: 0, logger: logger)
+            e
         }
         
         let dateParse: (Element) -> String? = { e in
-            try? self.loggedDOMParse(element: e, pattern: "td.game-time > span", instance: 0, logger: logger)?.attr("data-value")
+            let datePart: String? = self.loggedDOMParse(element: e.parent()?.parent(), pattern: "div.sportsbook-table-header__title > span > span", instance: 0, logger: logger)
+            let timePart: String? = self.loggedDOMParse(element: e, pattern: "span.event-cell__start-time", instance: 0, logger: logger)
+                return "\(datePart ?? "nil") \(timePart ?? "nil")"
         }
         
         let awayParse: (Element) -> String? = { e in
-            let elementWithAwayData = try? e.nextElementSibling()
-            return try? self.loggedDOMParse(element: elementWithAwayData, pattern: ".team-plate img", instance: 0, logger: logger)?.attr("alt")
+            self.loggedDOMParse(element: e, pattern: "th.sportsbook-table__column-row:first-child div.event-cell__name-text", instance: 0, logger: logger)
         }
         
         let homeParse: (Element) -> String? = { e in
-            let elementWithHomeData = try? e.nextElementSibling()?.nextElementSibling()
-            return try? self.loggedDOMParse(element: elementWithHomeData, pattern: ".team-plate img", instance: 0, logger: logger)?.attr("alt")
+            try? self.loggedDOMParse(element: e.nextElementSibling(), pattern: "th.sportsbook-table__column-row:first-child div.event-cell__name-text", instance: 0, logger: logger)
         }
         
         let spreadTextParse: (Element) -> String? = { e in
             // looking for away team's number, negative or positive
-            let elementWithAwayData = try? e.nextElementSibling()
-            return self.loggedDOMParse(element: elementWithAwayData, pattern: "td.game-odds:nth-of-type(3) span.data-value", instance: 0, logger: logger)
+            self.loggedDOMParse(element: e, pattern: "span.sportsbook-outcome-cell__line", instance: 0, logger: logger)
         }
         
         for i in 0..<(elements.count) {
             if let gameInfoElement = gameInfoElementParse(elements[i]),
                let stringDate = dateParse(gameInfoElement),
-               let dateDate = onlineDateToDate(stringDate),
+               let dateDate = onlineDateToDate(stringDate, logger),
                let away = awayParse(gameInfoElement),
                let home = homeParse(gameInfoElement),
                let spreadText = spreadTextParse(gameInfoElement),
@@ -119,14 +121,18 @@ class LineParser {
                 lines.append(OnlineSpread(date: dateDate, awayTeamString: away, homeTeamString: home, spreadValue: spreadValue))
             }
         }
+        logger.debug("\(lines.count) succesfully parsed.")
         return lines
     }
     
 
-    private func onlineDateToDate(_ dt: String) -> Date? {
+    private func onlineDateToDate(_ dt: String, _ logger: Logger) -> Date? {
+        logger.trace ("Starting date conversion of \(dt)")
         let dateFormatter = DateFormatter()
         dateFormatter.locale = Locale(identifier: "en_US_POSIX") // set locale to reliable US_POSIX
-        dateFormatter.dateFormat = "yyyy-MM-dd'T'HH:mm:ssZ"
+        //dateFormatter.dateFormat = "yyyy-MM-dd'T'HH:mm:ssZ"
+        dateFormatter.dateFormat = "EEE MMM dd'TH' h:mma"
+        logger.trace ("Date val: \(String(describing: dateFormatter.date(from: dt)))")
         return dateFormatter.date(from: dt)
     }
     

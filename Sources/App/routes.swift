@@ -16,7 +16,7 @@ func routes(_ app: Application, _ appConfig: AppConfig) throws {
                 var poolUserEntryId: String?
             }
             
-            let lines = try await LineParser(appConfig).parseVI2023(req)
+            let lines = try await LineParser(appConfig).parse(req)
             let week = try await currentWeek(req)
             var gameMatcherResponse = try await GameMatcher().load(req, appConfig: appConfig, lines: lines, week: week)
             if let poolUserParamContent = try? req.query.decode(PoolUserEntryContent.self),
@@ -36,7 +36,7 @@ func routes(_ app: Application, _ appConfig: AppConfig) throws {
     }
     
     app.get("testLines") { req async throws -> Response in
-        try await LineParser(appConfig).parseVI2023(req).encodeResponse(for: req)
+        try await LineParser(appConfig).parse(req).encodeResponse(for: req)
     }
     
 //    app.get("getLines", ":poolUserIEntryd") { req async throws -> Response in
