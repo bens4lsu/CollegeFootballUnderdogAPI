@@ -60,7 +60,7 @@ class GameMatcher {
 
     
     func load(_ req: Request, appConfig: AppConfig, lines: [LineParser.OnlineSpread], week: Week) async throws -> GameMatcherResponseAll {
-        
+
         if Self.teamList.isEmpty {
             Self.teamList = try await Team.query(on: req.db).all()
         }

@@ -17,7 +17,9 @@ func routes(_ app: Application, _ appConfig: AppConfig) throws {
             }
             
             let lines = try await LineParser(appConfig).parse(req)
+
             let week = try await currentWeek(req)
+
             var gameMatcherResponse = try await GameMatcher().load(req, appConfig: appConfig, lines: lines, week: week)
             if let poolUserParamContent = try? req.query.decode(PoolUserEntryContent.self),
                let poolUserParamStr = poolUserParamContent.poolUserEntryId,

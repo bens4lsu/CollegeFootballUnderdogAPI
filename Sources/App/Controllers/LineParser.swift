@@ -46,6 +46,13 @@ class LineParser {
         return formatter
     }
     
+    private var currentYear: Int {
+        Calendar.current.component(.year, from: Date())
+    }
+    
+    private var nextYear: Int {
+        currentYear + 1
+    }
 
     init(_ appConfig: AppConfig) async throws {
         self.appConfig = appConfig
@@ -130,10 +137,20 @@ class LineParser {
         logger.trace ("Starting date conversion of \(dt)")
         let dateFormatter = DateFormatter()
         dateFormatter.locale = Locale(identifier: "en_US_POSIX") // set locale to reliable US_POSIX
-        //dateFormatter.dateFormat = "yyyy-MM-dd'T'HH:mm:ssZ"
         dateFormatter.dateFormat = "EEE MMM dd'TH' h:mma"
-        logger.trace ("Date val: \(String(describing: dateFormatter.date(from: dt)))")
-        return dateFormatter.date(from: dt)
+        guard let date = dateFormatter.date(from:dt) else {
+            return nil
+        }
+        var dateComponets = calendar.dateComponents([.month, .day, .year, .hour, .minute, .timeZone], from: date)
+        var theYear = currentYear
+        if [1, 2].contains(dateComponets.month) {
+            theYear = nextYear
+        }
+        dateComponets.year = theYear
+        let finalDate = calendar.date(from: dateComponets)
+        logger.debug("\(dateComponets.debugDescription)")
+        logger.debug ("Date val: \(String(describing: finalDate))")
+        return finalDate
     }
     
 //    private func onlineDateToDate(_ req: Request, _ dt: String) throws -> Date {
