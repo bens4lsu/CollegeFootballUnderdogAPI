@@ -66,16 +66,16 @@ class GameMatcher {
         }
                         
         //let allTeamNames = teamList.map{$0.teamName}
-        var findTeamErrors = [String]()
+        var findTeamErrors = Set<String>()
         var gamesThisWeek = [GameMatcherResponse]()
         for line in lines {
             let homeTeam = matchTeam(teamName: line.homeTeamString)
             let awayTeam = matchTeam(teamName: line.awayTeamString)
             if homeTeam == nil {
-                findTeamErrors.append(line.homeTeamString)
+                findTeamErrors.insert(line.homeTeamString)
             }
             if awayTeam == nil {
-                findTeamErrors.append(line.awayTeamString)
+                findTeamErrors.insert(line.awayTeamString)
             }
             
             if homeTeam != nil && awayTeam != nil && line.date > Date() {
