@@ -27,24 +27,24 @@ class LineParser {
     private let weekdays = ["", "Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"]
     private let calendar = Calendar(identifier: .gregorian)
     
-    private var dateFormatterDateOnly: DateFormatter {
-        let formatter = DateFormatter()
-        formatter.dateFormat = "yyyy-MM-dd"
-        return formatter
-    }
-    
-    private var dateFormatterDateTime: DateFormatter {
-        let formatter = DateFormatter()
-        formatter.dateFormat = "yyyy-MM-dd H:mm"
-        formatter.timeZone = TimeZone(abbreviation: "EST")
-        return formatter
-    }
-    
-    private var dateFormatterShortDateOnPage: DateFormatter {
-        let formatter = DateFormatter()
-        formatter.dateFormat = "MMM dd, yyyy"
-        return formatter
-    }
+//    private var dateFormatterDateOnly: DateFormatter {
+//        let formatter = DateFormatter()
+//        formatter.dateFormat = "yyyy-MM-dd"
+//        return formatter
+//    }
+//    
+//    private var dateFormatterDateTime: DateFormatter {
+//        let formatter = DateFormatter()
+//        formatter.dateFormat = "yyyy-MM-dd H:mm"
+//        formatter.timeZone = TimeZone(abbreviation: "EST")
+//        return formatter
+//    }
+//    
+//    private var dateFormatterShortDateOnPage: DateFormatter {
+//        let formatter = DateFormatter()
+//        formatter.dateFormat = "MMM dd, yyyy"
+//        return formatter
+//    }
     
     private var currentYear: Int {
         Calendar.current.component(.year, from: Date())
@@ -80,7 +80,7 @@ class LineParser {
             throw Abort (.internalServerError, reason: "Unable to parse document at \(appConfig.linesUrl)")
         }
 
-        guard let elements = try? doc.select("table.sportsbook-table tr:nth-child(2), table.sportsbook-table tr.break-line"),
+        guard let elements = try? doc.select("table.sportsbook-table tr:nth-child(1), table.sportsbook-table tr.break-line"),
         //guard let elements = try? doc.select("table.sportsbook-table tr.break-line"),
               elements.count > 0
         else {
@@ -114,7 +114,7 @@ class LineParser {
             // looking for away team's number, negative or positive
             self.loggedDOMParse(element: e, pattern: "span.sportsbook-outcome-cell__line", instance: 0, logger: logger)
         }
-        
+
         for i in 0..<(elements.count) {
             if let gameInfoElement = gameInfoElementParse(elements[i]),
                let stringDate = dateParse(gameInfoElement),
@@ -124,7 +124,7 @@ class LineParser {
                let spreadText = spreadTextParse(gameInfoElement),
                let spreadValue = Double(spreadText)
             {
-                logger.debug("\(stringDate)  \(away)  \(home)  \(spreadText)")
+                logger.trace("\(stringDate) \(dateDate) \(away)  \(home)  \(spreadText)")
                 lines.append(OnlineSpread(date: dateDate, awayTeamString: away, homeTeamString: home, spreadValue: spreadValue))
             }
         }
@@ -134,11 +134,25 @@ class LineParser {
     
 
     private func onlineDateToDate(_ dt: String, _ logger: Logger) -> Date? {
-        logger.trace ("Starting date conversion of \(dt)")
+        logger.debug ("Starting date conversion of \(dt)")
+        
         let dateFormatter = DateFormatter()
         dateFormatter.locale = Locale(identifier: "en_US_POSIX") // set locale to reliable US_POSIX
         dateFormatter.dateFormat = "EEE MMM dd'TH' h:mma"
-        guard let date = dateFormatter.date(from:dt) else {
+        dateFormatter.timeZone = TimeZone(identifier: "GMT")
+        
+        var attemptedDate = dateFormatter.date(from:dt)
+        if attemptedDate == nil {
+            dateFormatter.dateFormat = "EEE MMM dd'ND' h:mma"
+            attemptedDate = dateFormatter.date(from:dt)
+        }
+        if attemptedDate == nil {
+            dateFormatter.dateFormat = "EEE MMM dd'ST' h:mma"
+            attemptedDate = dateFormatter.date(from:dt)
+        }
+        
+        guard let date = attemptedDate else {
+            logger.error("Date conversion failed \(dt)")
             return nil
         }
         var dateComponets = calendar.dateComponents([.month, .day, .year, .hour, .minute, .timeZone], from: date)
@@ -148,10 +162,10 @@ class LineParser {
         }
         dateComponets.year = theYear
         let finalDate = calendar.date(from: dateComponets)
-        logger.debug("\(dateComponets.debugDescription)")
-        logger.debug ("Date val: \(String(describing: finalDate))")
+        logger.trace("Date val: \(String(describing: finalDate)) --> \(dateComponets.debugDescription)")
         return finalDate
     }
+    
     
 //    private func onlineDateToDate(_ req: Request, _ dt: String) throws -> Date {
 //        let comps = dt.components(separatedBy: " ")

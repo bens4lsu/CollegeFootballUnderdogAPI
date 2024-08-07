@@ -64,6 +64,10 @@ class GameMatcher {
         if Self.teamList.isEmpty {
             Self.teamList = try await Team.query(on: req.db).all()
         }
+        
+        var logger = req.application.logger
+        logger.logLevel = appConfig.loggerLogLevel
+        logger.debug ("weekDateEnd:  \(week.weekDateEnd)")
                         
         //let allTeamNames = teamList.map{$0.teamName}
         var findTeamErrors = Set<String>()
@@ -78,7 +82,13 @@ class GameMatcher {
                 findTeamErrors.insert(line.awayTeamString)
             }
             
-            if homeTeam != nil && awayTeam != nil && line.date > Date() {
+            logger.debug("\(homeTeam?.teamName ?? "nil") \(awayTeam?.teamName ?? "nil") \(line.date)")
+            if homeTeam != nil
+                && awayTeam != nil
+                && line.date > Date()
+                && line.date < week.weekDateEnd.addingTimeInterval(86_400)
+            {
+                
                 let game = try await findGameWith(req, homeTeam: homeTeam!, awayTeam: awayTeam!, weekId: week.id!)
                 if game != nil {
                     let gmr = GameMatcherResponse(gameId: game!.id!, homeTeam: line.homeTeamString, awayTeam: line.awayTeamString, kickoff: line.date, spread: line.spreadValue)
