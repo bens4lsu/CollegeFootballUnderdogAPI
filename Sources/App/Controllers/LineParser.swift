@@ -118,7 +118,7 @@ class LineParser {
         for i in 0..<(elements.count) {
             if let gameInfoElement = gameInfoElementParse(elements[i]),
                let stringDate = dateParse(gameInfoElement),
-               let dateDate = onlineDateToDate(stringDate, logger),
+               let dateDate = try onlineDateToDate(stringDate, logger),
                let away = awayParse(gameInfoElement),
                let home = homeParse(gameInfoElement),
                let spreadText = spreadTextParse(gameInfoElement),
@@ -133,14 +133,35 @@ class LineParser {
     }
     
 
-    private func onlineDateToDate(_ dt: String, _ logger: Logger) -> Date? {
+    private func onlineDateToDate(_ dt: String, _ logger: Logger) throws -> Date? {
+        var dt = dt
         logger.debug ("Starting date conversion of \(dt)")
+        
+        let comps = dt.components(separatedBy: " ")
+        guard let firstWord = comps.first,
+              let lastWord = comps.last
+        else {
+            throw Abort(.internalServerError, reason: "Error converting date in the game data to an actual date.")
+        }
         
         let dateFormatter = DateFormatter()
         dateFormatter.locale = Locale(identifier: "en_US_POSIX") // set locale to reliable US_POSIX
-        dateFormatter.dateFormat = "EEE MMM dd'TH' h:mma"
+        
+        dateFormatter.dateFormat = "EEE MMM dd'TH'"
         dateFormatter.timeZone = TimeZone(identifier: "GMT")
         
+        if firstWord == "Today" {
+            dt = dateFormatter.string(from: Date()) + " " + lastWord
+        }
+        
+        if firstWord == "Tomorrow" {
+            let tomorrow = Calendar.current.date(byAdding: .day, value: 1, to: Date())
+            dt = dateFormatter.string(from: tomorrow ?? Date()) + " " + lastWord
+        }
+        
+            
+        dateFormatter.dateFormat = "EEE MMM dd'TH' h:mma"
+            
         var attemptedDate = dateFormatter.date(from:dt)
         if attemptedDate == nil {
             dateFormatter.dateFormat = "EEE MMM dd'ND' h:mma"
