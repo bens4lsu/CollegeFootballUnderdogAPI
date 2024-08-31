@@ -80,6 +80,12 @@ class LineParser {
             throw Abort (.internalServerError, reason: "Unable to parse document at \(appConfig.linesUrl)")
         }
 
+        if logger.logLevel == .trace {
+            if let html = try? doc.outerHtml() {
+                logger.trace("\(html)")
+            }
+        }
+        
         guard let elements = try? doc.select("table.sportsbook-table tr:nth-child(1), table.sportsbook-table tr.break-line"),
         //guard let elements = try? doc.select("table.sportsbook-table tr.break-line"),
               elements.count > 0
@@ -135,7 +141,7 @@ class LineParser {
 
     private func onlineDateToDate(_ dt: String, _ logger: Logger) throws -> Date? {
         var dt = dt
-        logger.debug ("Starting date conversion of \(dt)")
+        logger.trace ("Starting date conversion of \(dt)")
         
         let comps = dt.components(separatedBy: " ")
         guard let firstWord = comps.first,
