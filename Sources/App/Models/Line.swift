@@ -13,7 +13,7 @@ enum LineFavorite: Character, Codable {
     case h = "H", a = "A"
 }
 
-final class Line: Content {
+final class Line: Content, @unchecked Sendable {
 
     var homeTeam: Team
     var awayTeam: Team

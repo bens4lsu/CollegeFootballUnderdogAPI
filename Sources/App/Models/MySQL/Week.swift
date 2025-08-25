@@ -11,7 +11,7 @@ import Vapor
 import Fluent
 import FluentMySQLDriver
 
-final class Week: Model, Content {
+final class Week: Model, Content, @unchecked Sendable {
 
     
     typealias IDValue = Int

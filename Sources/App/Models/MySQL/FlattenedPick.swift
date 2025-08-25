@@ -10,7 +10,7 @@ import Vapor
 import Fluent
 import FluentMySQLDriver
 
-final class FlattenedPick: Model, Content {
+final class FlattenedPick: Model, Content, @unchecked Sendable {
     typealias IDValue = Int
     
     static var schema = "vwAllPicks"

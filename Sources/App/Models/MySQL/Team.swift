@@ -10,7 +10,7 @@ import Vapor
 import Fluent
 import FluentMySQLDriver
 
-final class Team: Model, Content {
+final class Team: Model, Content, @unchecked Sendable {
     typealias IDValue = Int
     
     static var schema = "DFootballTeams"

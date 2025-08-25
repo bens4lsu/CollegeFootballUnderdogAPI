@@ -82,6 +82,8 @@ class GameMatcher {
                 findTeamErrors.insert(line.awayTeamString)
             }
             
+            var gmr: GameMatcherResponse
+            
             logger.debug("\(homeTeam?.teamName ?? "nil") \(awayTeam?.teamName ?? "nil") \(line.date)")
             if homeTeam != nil
                 && awayTeam != nil
@@ -91,16 +93,19 @@ class GameMatcher {
                 
                 let game = try await findGameWith(req, homeTeam: homeTeam!, awayTeam: awayTeam!, weekId: week.id!)
                 if game != nil {
-                    let gmr = GameMatcherResponse(gameId: game!.id!, homeTeam: line.homeTeamString, awayTeam: line.awayTeamString, kickoff: line.date, spread: line.spreadValue)
+                    gmr = GameMatcherResponse(gameId: game!.id!, homeTeam: line.homeTeamString, awayTeam: line.awayTeamString, kickoff: line.date, spread: line.spreadValue)
                     gamesThisWeek.append(gmr)
                 }
-                else {  //create new agame
+                else {  //create new game
                     //print ("home: \(homeTeam!.teamName)   away: \(awayTeam!.teamName)")
                     let newGame = Game(week: week.id!, awayTeamId: awayTeam!.id!, homeTeamId: homeTeam!.id!, kickoff: line.date)
                     try await newGame.save(on: req.db)
-                    let gmr = GameMatcherResponse(gameId: newGame.id!, homeTeam: line.homeTeamString, awayTeam: line.awayTeamString, kickoff: line.date, spread: line.spreadValue)
+                    gmr = GameMatcherResponse(gameId: newGame.id!, homeTeam: line.homeTeamString, awayTeam: line.awayTeamString, kickoff: line.date, spread: line.spreadValue)
                     gamesThisWeek.append(gmr)
                 }
+                // update or insert saved spreads
+                let newGameSpread = GameSavedSpread(id: gmr.gameId, spread: gmr.spread, whoFavored: gmr.whoFavored)
+                try await newGameSpread.save(on: req.db)
             }
         }
         

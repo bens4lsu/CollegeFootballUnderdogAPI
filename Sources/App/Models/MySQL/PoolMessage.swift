@@ -10,7 +10,7 @@ import Vapor
 import Fluent
 import FluentMySQLDriver
 
-final class PoolMessage: Model, Content {
+final class PoolMessage: Model, Content, @unchecked Sendable {
     typealias IDValue = Int
     
     static var schema = "PoolMessages"
